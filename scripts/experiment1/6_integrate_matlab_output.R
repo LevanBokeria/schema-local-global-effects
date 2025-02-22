@@ -6,15 +6,17 @@
 rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
-source('./scripts/utils/load_transform_data.R')
+source('./scripts/utils/load_transform_data_expt1.R')
 source('./scripts/utils/functions_for_fitting_learning_curves.R')
 
 # Flags
 saveData <- T
 
+saveFolder <- './results/experiment1/'
+
 # Start combining data ######################################################
 
-ml_learning_rate <- import('./results/learning_rate_fits_matlab.csv')
+ml_learning_rate <- import(file.path(saveFolder,'/learning_rate_fits_matlab.csv'))
 
 # If data summary already has the model fitting columns, remove those
 data_summary <- data_summary %>%
@@ -103,7 +105,7 @@ mean_by_rep_long_all_types <- merge(mean_by_rep_long_all_types,
 # Save the data #################################
 if (saveData){
         write_csv(mean_by_rep_long_all_types,
-                  file = './results/mean_by_rep_long_all_types.csv')
+                  file = file.path(saveFolder,'/mean_by_rep_long_all_types.csv'))
         
-        write_csv(data_summary,file = './results/data_summary.csv')
+        write_csv(data_summary,file = file.path(saveFolder,'/data_summary.csv'))
 }
