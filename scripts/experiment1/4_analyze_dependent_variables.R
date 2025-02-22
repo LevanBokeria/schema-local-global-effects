@@ -13,7 +13,7 @@
 rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
-source('./scripts/utils/load_transform_data_exp1.R')
+source('./scripts/utils/load_transform_data_expt1.R')
 
 # Flags
 saveData <- T

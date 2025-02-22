@@ -20,8 +20,8 @@
 rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
-source('./scripts/utils/load_transform_data_exp1.R')
-source('./scripts/utils/qc_checks_permutations_exp1.R')
+source('./scripts/utils/load_transform_data_expt1.R')
+source('./scripts/utils/qc_checks_permutations_expt1.R')
 
 saveDataCSV <- F
 saveFolder <- './results/experiment1/'
