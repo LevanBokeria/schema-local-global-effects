@@ -23,7 +23,7 @@ source('./scripts/utils/load_all_libraries.R')
 source('./scripts/utils/load_transform_data_expt1.R')
 source('./scripts/utils/qc_checks_permutations_expt1.R')
 
-saveDataCSV <- F
+saveDataCSV <- T
 saveFolder <- './results/experiment1/'
 
 load_qc_perm_data <- T
