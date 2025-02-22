@@ -20,10 +20,11 @@
 rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
-source('./scripts/utils/load_transform_data.R')
-source('./scripts/utils/qc_checks_permutations.R')
+source('./scripts/utils/load_transform_data_exp1.R')
+source('./scripts/utils/qc_checks_permutations_exp1.R')
 
-saveDataCSV <- T
+saveDataCSV <- F
+saveFolder <- './results/experiment1/'
 
 load_qc_perm_data <- T
 save_qc_perm_data <- F
@@ -32,13 +33,13 @@ save_qc_perm_data <- F
 
 ## 1. Manual QC failures ------------------------------
 
-qc_check_debrief_and_errors <- import('./results/qc_check_sheets/qc_check_debrief_and_errors.xlsx') %>%
+qc_check_debrief_and_errors <- import(file.path(saveFolder,'/qc_check_sheets/qc_check_debrief_and_errors.xlsx')) %>%
         select(-reason) %>%
         rename(ptp = participant)
 
 ## 2. Instruction times -------------------------------
 
-instruction_rt <- import('./results/preprocessed_data/instructions_rt_all_ptp.csv')
+instruction_rt <- import(file.path(saveFolder,'/preprocessed_data/instructions_rt_all_ptp.csv'))
 
 # Check that for each participant, for each page (except the first) have at least 1 second
 instructions_summary <- instruction_rt %>%
@@ -59,7 +60,7 @@ qc_check_instructions_rt <- instructions_summary %>%
 
 max_break_mins_allowed <- 10
 
-break_rt <- import('./results/preprocessed_data/break_rt_all_ptp.csv')
+break_rt <- import(file.path(saveFolder,'/preprocessed_data/break_rt_all_ptp.csv'))
 
 qc_check_break_rt <- break_rt %>%
         group_by(ptp) %>%
@@ -236,7 +237,7 @@ qc_table %>%
 
 if (saveDataCSV){
         
-        export(qc_table,'./results/qc_check_sheets/qc_table.csv')
+        export(qc_table,file.path(saveFolder,'/qc_check_sheets/qc_table.csv'))
         
 }
 
