@@ -1,0 +1,990 @@
+---
+title: "Experiment 1 analyses and plots"
+output:
+  html_document:
+    number_sections: false
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Setup: load data, define variables, etc
+
+```{r load-data-define-variables}
+
+rm(list=ls())
+
+source('./scripts/utils/load_all_libraries.R')
+
+qc_filter <- T
+
+plot_fits_near_far <- F
+
+source('./scripts/utils/load_transform_data_expt1.R')
+
+qc_table <- import('./results/experiment1/qc_check_sheets/qc_table.csv')
+
+if (qc_filter){
+        
+        qc_pass_ptp <- qc_table %>%
+                filter(!qc_fail_overall) %>%
+                select(ptp) %>% .[[1]]
+        
+        
+        data_summary <- data_summary %>%
+                filter(ptp %in% qc_pass_ptp)
+        long_data <- long_data %>%
+                filter(ptp %in% qc_pass_ptp) 
+        mean_by_rep_long_all_types <- mean_by_rep_long_all_types %>%
+                filter(ptp %in% qc_pass_ptp)
+        
+}
+
+## BF test against 0 
+reportBF = function(x, digits){
+        round(as.numeric(as.vector(x)), digits)
+}
+
+```
+
+
+
+# Learning across all trials 
+
+```{r learning-fits-across-participants-all-conditions, fig.height=4, fig.width=5}
+
+# Plot the fits
+fig_each_ptp <- mean_by_rep_long_all_types %>%
+        filter(hidden_pa_img_type == 'all_pa',
+               border_dist_closest == 'all',
+               # condition %in% c('schema_c','schema_l')
+               ) %>%
+        droplevels() %>%                
+        group_by(condition,
+                 hidden_pa_img_row_number_across_blocks) %>%
+        summarise(n = n(),
+                  mouse_error_mean_across_ptp = mean(mouse_error_mean,na.rm = T),
+                  mouse_error_sd_across_ptp   = sd(mouse_error_mean, na.rm = T),
+                  sem                         = mouse_error_sd_across_ptp/sqrt(n),
+                  upper_95_ci = mouse_error_mean_across_ptp + qt(0.975,df = n-1)*sem,
+                  lower_95_ci = mouse_error_mean_across_ptp - qt(0.975,df = n-1)*sem) %>% 
+        ungroup() %>% 
+        ggplot(aes(x=hidden_pa_img_row_number_across_blocks,
+                   y=mouse_error_mean_across_ptp,
+                   color=condition)) +
+        geom_point(size=1.5) +
+        geom_line(size=0.5) +
+        # geom_ribbon(aes(ymin = lower_95_ci,
+        #                 ymax = upper_95_ci,
+        #                 group=condition,
+        #                 color=condition),
+        #             alpha = 0.1,
+        #             colour = NA) +
+
+        # facet_grid(~condition) +
+        ggtitle(paste('Learning curvers',sep='')) +
+        xlab('Image repetition') +
+        ylab('Error') +
+        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
+        scale_y_continuous(breaks=seq(0,200,25)) +  
+        coord_cartesian(ylim = c(0,200)) +
+        # theme(legend.position = 'top') +
+        geom_vline(xintercept = 4.5, linetype = 'dashed') +
+        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank()) +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_color_discrete(labels = c('Schema C',
+                                        'Schema IC',
+                                        'Schema L',
+                                        'Random',
+                                        'No Schema'),
+                             name = 'Condition')
+
+
+
+print(fig_each_ptp)
+
+# ggsave(filename = 'learning_rates_all_cond.png', plot = fig_each_ptp, path = './results/experiment1/plots/', width = 5, height = 3, device='png', dpi=300)
+
+```
+
+# Block 2 error analyses:
+
+## All PAs:
+
+### Figure 4-B: Block 2 mean performance:
+
+```{r block-2-conditions, fig.width=3}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=block_2_mouse_error_mean,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') + 
+        geom_jitter(width = 0.05,
+                    height = 0,
+                    alpha = 0.2) +
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Mean Block 2 Error') +
+        xlab('') +
+        theme(legend.position = '') + 
+        scale_x_discrete(labels = c('Schema C',
+                                    'Schema L',
+                                    'Schema IC',
+                                    'Random',
+                                    'No Schema')) +
+        coord_cartesian(ylim = c(0,200)) + 
+        ggtitle('Mean Block 2 Accuracy, All hidden-PAs') + 
+        theme(plot.title = element_text(hjust = 0.5))
+        
+print(p) 
+
+ggsave(filename = 'block_2_barplot.png', plot = p, path = './results/experiment1/plots/', width = 5, height = 3, device='png', dpi=300)
+
+```
+
+### Bayes Factors between pairs of conditions
+
+```{r bf-analysis-pairs}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = block_2_mouse_error_mean_LOG)
+
+
+# schema C vs IC
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_ic
+
+i_bf_all_pa_c_vs_ic <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs L
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_l
+
+i_bf_all_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs Rand
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$random_loc
+
+i_bf_all_pa_c_vs_rand <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs No schema
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_c_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema IC vs No schema
+i_data <- data_summary_wide_condition$schema_ic - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_ic_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# Random vs No Schema
+i_data <- data_summary_wide_condition$random_loc - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_rand_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+
+```
+
+### Effect sizes between pairs of conditions
+
+```{r effect-size-block-2-conditions}
+
+idf <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        select(ptp,condition,block_2_mouse_error_mean_LOG)
+
+es_block_2_conditions <- idf %>%
+        cohens_d(block_2_mouse_error_mean_LOG ~ condition, 
+                 paired = TRUE, 
+                 var.equal = FALSE,
+                 # comparisons = list(c("schema_c","schema_ic"),),
+                 hedges.correction = FALSE)
+
+```
+
+## Near vs Far PAs:
+
+### Figure 4-C: Near vs Far for all conditions
+
+```{r near-far-block-2-all-conditions, fig.width=5, fig.height=2}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=hidden_pa_img_type,
+                   y=block_2_mouse_error_mean,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') +
+        # geom_jitter(width = 0.05,
+        #             height = 0,
+        #             alpha = 0.2) +
+        geom_point(alpha = 0.2) +
+        geom_line(aes(group=ptp),
+                  alpha = 0.1) +        
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Mean Block 2 Error') +
+        xlab('') +
+        facet_wrap(~condition, nrow = 1) +        
+        theme(legend.position = '') +
+        # scale_x_discrete(labels = c('Schema C',
+        #                             'Schema L',
+        #                             'Schema IC',
+        #                             'Random',
+        #                             'No Schema')) +
+        # coord_cartesian(ylim = c(0,200)) + 
+        ggtitle('Near vs Far Hidden-PAs') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_x_discrete(labels = c('Far','Near'))
+        
+print(p) 
+
+ggsave(filename = 'near_far_barplot.png', plot = p, path = './results/experiment1/plots/', width = 10, height = 3, device='png', dpi=300)
+
+```
+
+### Figure 4-C: Bayes Factors near-far
+
+```{r bf-near-far-all-conditions}
+
+null_interval <- c(-Inf,0)
+
+
+data_summary_wide_near_far <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>% 
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                condition),
+                    names_from = hidden_pa_img_type,
+                    values_from = block_2_mouse_error_mean_LOG) %>% 
+        mutate(near_minus_far = near-far)
+
+# For each condition do the BF test
+data_summary_wide_near_far %>%
+        group_by(condition) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$near_minus_far,
+                                        nullInterval = null_interval)[1],4),
+                  bf_01 = 1/bf_10)
+
+```
+
+### Figure 4-C: Effect sizes near-far:
+
+```{r effect-size-near-far-all-conditions}
+
+
+idf <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>% 
+        droplevels() %>% 
+        select(ptp, condition, hidden_pa_img_type, block_2_mouse_error_mean_LOG)
+
+es_block_2_near_far <- idf %>%
+        group_by(condition) %>%
+        cohens_d(block_2_mouse_error_mean_LOG ~ hidden_pa_img_type, 
+        paired = TRUE, 
+        var.equal = FALSE,
+        # comparisons = list(c("schema_c","schema_ic"),),
+        hedges.correction = FALSE)
+        
+# Check that one sample test for differences is the same
+es_block_2_near_far_one_sample <- data_summary_wide_near_far %>%
+        group_by(condition) %>%
+        cohens_d(near_minus_far ~ 1, mu = 0) 
+
+```
+
+## Near PA analyses between conditions:
+
+### Figure 4-C: Near PA schema-C vs schema-L
+
+
+```{r near-pa-block-2-c-vs-l, fig.width=3, fig.height=3}
+
+data_summary %>%
+        filter(hidden_pa_img_type == 'near',
+               condition %in% c('schema_c','schema_l'),
+               ) %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=block_2_mouse_error_mean,
+                   fill=condition)) +
+        geom_violin(alpha = 0.2,
+                    width = 0.5) +
+        geom_boxplot(width=0.2,
+                     fatten=4,
+                     outlier.shape = '') +
+        geom_point(alpha = 0.2) +
+        # geom_jitter(height = 0,
+        #             width = 0.06,
+        #             alpha = 0.3) +
+        geom_line(aes(group=ptp),
+                  alpha = 0.1) +
+        stat_summary(fun=mean,
+                     color='red',
+                     size=0.5) +
+        # ggtitle('Block 2 error near and far, comparing conditions') +
+        ylab('Block 2 error') + 
+        xlab('') +
+        theme(legend.position = '')
+
+
+```
+
+
+```{r bf-near-c-vs-l}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_near_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'near') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = block_2_mouse_error_mean_LOG)
+
+
+# schema C vs L
+i_data <- data_summary_near_wide_condition$schema_c - data_summary_near_wide_condition$schema_l
+
+i_bf_near_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs No Schema
+i_data <- data_summary_near_wide_condition$schema_c - data_summary_near_wide_condition$no_schema
+
+i_bf_near_pa_c_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+
+
+data_summary_far_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'far') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = block_2_mouse_error_mean_LOG)
+
+
+# schema C vs No Schema
+i_data <- data_summary_far_wide_condition$schema_c - data_summary_far_wide_condition$no_schema
+
+i_bf_far_pa_c_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+```
+
+
+```{r effect-size-near-c-vs-l}
+
+idf <- data_summary %>%
+        filter(hidden_pa_img_type != "all_pa") %>% 
+        select(ptp,condition,hidden_pa_img_type,block_2_mouse_error_mean_LOG)
+
+es_block_2_near_and_far_conditions <- idf %>% 
+        group_by(hidden_pa_img_type) %>%
+        cohens_d(block_2_mouse_error_mean_LOG ~ condition, 
+        paired = TRUE, 
+        var.equal = FALSE,
+        # comparisons = list(c("schema_c","schema_ic"),),
+        hedges.correction = FALSE)
+
+```
+
+
+# Learning Rate analyses
+
+## Comparing 2 vs 3 parameter model 
+
+```{r model-comparison, fig.width=6, fig.height=5}
+
+# Just do the count of winning model across all participants:
+data_summary <- data_summary %>%
+        mutate(winning_model_AIC = case_when(
+                AIC_two_param < AIC_three_param ~ 'two',
+                AIC_two_param > AIC_three_param ~ 'three',
+                TRUE ~ 'equal'),
+               winning_model_SSE = case_when(
+                sse_two_param < sse_three_param ~ 'two',
+                sse_two_param > sse_three_param ~ 'three',
+                TRUE ~ 'equal'
+                )
+               ) 
+
+data_summary %>%
+        # filter(hidden_pa_img_type == 'all_pa') %>%
+        count(winning_model_AIC)
+data_summary %>%
+        # filter(hidden_pa_img_type == 'all_pa') %>%
+        count(winning_model_SSE)
+
+# Scatterplot of AIC comparisons
+
+p1 <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        ggplot(aes(x=AIC_two_param,y=AIC_three_param)) +
+        # ggplot(aes(x=BIC_two_param,y=BIC_three_param)) +
+        geom_point() +
+        geom_abline(slope = 1,intercept = 0) + 
+        coord_cartesian(xlim = c(40,100),ylim = c(40,100)) +
+        # facet_wrap(~hidden_pa_img_type) +
+        ggtitle('AIC criterion for the 2- vs 3-parameter model') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        ylab('3-parameter model AIC') +
+        xlab('2-parameter model AIC')
+
+p2 <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        ggplot(aes(x=sse_two_param,y=sse_three_param)) +
+        # ggplot(aes(x=BIC_two_param,y=BIC_three_param)) +
+        geom_point() +
+        geom_abline(slope = 1,intercept = 0) +
+        # facet_wrap(~hidden_pa_img_type) +
+        ggtitle('SSE for the 2- vs 3-parameter model') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        ylab('3-parameter model SSE') +
+        xlab('2-parameter model SSE')
+
+print(p1)
+print(p2)
+
+ggsave(filename = 'AIC_comparison.png', plot = p1, path = './results/experiment1/plots/', width = 7, height = 3, device='png', dpi=300)
+ggsave(filename = 'SSE_comparison.png', plot = p2, path = './results/experiment1/plots/', width = 4.5, height = 3, device='png', dpi=300)
+```
+
+```{r learning-rate-densities}
+
+# Density plot
+f1 <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        ggplot(aes(x=learning_rate_two_param,
+                   # y = ..density..
+                   )) +
+        geom_histogram() +
+        # geom_density(lwd = 1,
+        #              color = 'red') +
+        # facet_wrap(~hidden_pa_img_type) +
+        ggtitle('Histogram: the 2-parameter model') +
+        ylab('Count') +
+        xlab('Learning rate')
+
+print(f1)
+
+# Density plot
+f2 <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        ggplot(aes(x=learning_rate_three_param,
+                   # y = ..density..
+                   )) +
+        geom_histogram() +
+        # geom_density(lwd = 1,
+        #              color = 'red') +
+        # facet_wrap(~hidden_pa_img_type) +
+        ggtitle('Histogram: the 3-parameter model') +
+        ylab('Count') +
+        xlab('Learning rate')
+
+print(f2)
+
+ggsave(filename = 'LR2_hist.png', plot = f1, path = './results/experiment1/plots/', width = 3.5, height = 3, device='png', dpi=300)
+ggsave(filename = 'LR3_hist.png', plot = f2, path = './results/experiment1/plots/', width = 3.5, height = 3, device='png', dpi=300)
+
+```
+
+
+## 2-parameter learning rates for all conditions:
+
+```{r lr2-conditions, fig.width=7}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=learning_rate_two_param_no_outlier,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') + 
+        geom_jitter(width = 0.05,
+                    height = 0,
+                    alpha = 0.2) +
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Learning Rate') +
+        xlab('') +
+        theme(legend.position = '') + 
+        scale_x_discrete(labels = c('Schema C',
+                                    'Schema L',
+                                    'Schema IC',
+                                    'Random',
+                                    'No Schema')) +
+        coord_cartesian(ylim = c(-0.1,0.9)) +
+        ggtitle('2-parameter model learning rates (no outliers)') + 
+        theme(plot.title = element_text(hjust = 0.5))
+        
+print(p) 
+
+ggsave(filename = 'lr2_no_outlier.png', plot = p, path = './results/experiment1/plots/', width = 5, height = 3, device='png', dpi=300)
+
+```
+
+## BF: LR2 between pairs of conditions
+
+```{r lr2-bf-analysis-pairs}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = learning_rate_two_param_no_outlier_G)
+
+
+# schema C vs IC
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_ic
+
+i_bf_all_pa_c_vs_ic <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs L
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_l
+
+i_bf_all_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs Rand
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$random_loc
+
+i_bf_all_pa_c_vs_rand <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs No schema
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_c_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema IC vs No schema
+i_data <- data_summary_wide_condition$schema_ic - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_ic_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# Random vs No Schema
+i_data <- data_summary_wide_condition$random_loc - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_rand_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+
+
+
+```
+
+
+
+
+## LR2 Near vs Far for all conditions
+
+```{r near-far-lf2-all-conditions, fig.width=10, fig.height=4}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=hidden_pa_img_type,
+                   y=learning_rate_two_param_no_outlier,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') +
+        # geom_jitter(width = 0.05,
+        #             height = 0,
+        #             alpha = 0.2) +
+        geom_point(alpha = 0.2) +
+        geom_line(aes(group=ptp),
+                  alpha = 0.1) +        
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Learning Rate') +
+        xlab('') +
+        facet_wrap(~condition, nrow = 1) +        
+        theme(legend.position = '') +
+        # scale_x_discrete(labels = c('Schema C',
+        #                             'Schema L',
+        #                             'Schema IC',
+        #                             'Random',
+        #                             'No Schema')) +
+        coord_cartesian(ylim = c(-0.1,0.8)) +
+        ggtitle('2 parameter learning rates: Near vs Far Hidden-PAs') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_x_discrete(labels = c('Far','Near'))
+        
+print(p) 
+
+ggsave(filename = 'lr2_near_far_barplot.png', plot = p, path = './results/experiment1/plots/', width = 10, height = 3, device='png', dpi=300)
+
+```
+
+### BF near-far
+
+```{r lr2-bf-near-far-all-conditions}
+
+null_interval <- c(0,Inf)
+
+
+data_summary_wide_near_far <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>% 
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                condition),
+                    names_from = hidden_pa_img_type,
+                    values_from = learning_rate_two_param_no_outlier_G) %>% 
+        mutate(near_minus_far = near-far)
+
+# For each condition do the BF test
+data_summary_wide_near_far %>%
+        group_by(condition) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$near_minus_far,
+                                        nullInterval = null_interval)[1],4),
+                  bf_01 = 1/bf_10)
+
+```
+
+### BF Near C vs L
+
+```{r lr2-bf-near-c-vs-l}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_near_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'near') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = learning_rate_two_param_no_outlier_G)
+
+
+# schema C vs L
+i_data <- data_summary_near_wide_condition$schema_c - data_summary_near_wide_condition$schema_l
+
+i_bf_near_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+```
+
+
+## 3-parameter learning rates for all conditions:
+
+```{r lr3-conditions, fig.width=7}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=condition,
+                   y=learning_rate_three_param_no_outlier,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') + 
+        geom_jitter(width = 0.05,
+                    height = 0,
+                    alpha = 0.2) +
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Learning Rate') +
+        xlab('') +
+        theme(legend.position = '') + 
+        scale_x_discrete(labels = c('Schema C',
+                                    'Schema L',
+                                    'Schema IC',
+                                    'Random',
+                                    'No Schema')) +
+        # coord_cartesian(ylim = c(-0.1,0.9)) +
+        ggtitle('3-parameter model learning rates (no outliers)') + 
+        theme(plot.title = element_text(hjust = 0.5))
+        
+print(p) 
+
+ggsave(filename = 'lr3_no_outlier.png', plot = p, path = './results/experiment1/plots/', width = 5, height = 3, device='png', dpi=300)
+
+```
+
+## BF: LR3 between pairs of conditions
+
+```{r lr3-bf-analysis-pairs}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'all_pa') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = learning_rate_three_param_no_outlier_G)
+
+
+# schema C vs IC
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_ic
+
+i_bf_all_pa_c_vs_ic <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs L
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$schema_l
+
+i_bf_all_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs Rand
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$random_loc
+
+i_bf_all_pa_c_vs_rand <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema C vs No schema
+i_data <- data_summary_wide_condition$schema_c - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_c_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# schema IC vs No schema
+i_data <- data_summary_wide_condition$schema_ic - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_ic_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+# Random vs No Schema
+i_data <- data_summary_wide_condition$random_loc - data_summary_wide_condition$no_schema
+
+i_bf_all_pa_rand_vs_no_schema <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+
+
+
+```
+
+## LR3 Near vs Far for all conditions
+
+```{r near-far-lf3-all-conditions, fig.width=10, fig.height=4}
+
+# Barplot
+p <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>%
+        droplevels() %>%
+        ggplot(aes(x=hidden_pa_img_type,
+                   y=learning_rate_three_param_no_outlier,
+                   fill=condition)) +
+        geom_bar(stat = 'summary', 
+                 fun = 'mean',
+                 width = 0.8) +
+        geom_violin(width = 0.7) +
+        geom_boxplot(width = 0.15,
+                     fatten = 4,
+                     outlier.shape = '') +
+        # geom_jitter(width = 0.05,
+        #             height = 0,
+        #             alpha = 0.2) +
+        geom_point(alpha = 0.2) +
+        geom_line(aes(group=ptp),
+                  alpha = 0.1) +        
+        # stat_summary(fun = 'mean',
+        #              size = 2,
+        #              color = 'red') +
+        ylab('Learning Rate') +
+        xlab('') +
+        facet_wrap(~condition, nrow = 1) +        
+        theme(legend.position = '') +
+        # scale_x_discrete(labels = c('Schema C',
+        #                             'Schema L',
+        #                             'Schema IC',
+        #                             'Random',
+        #                             'No Schema')) +
+        # coord_cartesian(ylim = c(-0.1,0.8)) +
+        ggtitle('3 parameter learning rates: Near vs Far Hidden-PAs') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_x_discrete(labels = c('Far','Near'))
+        
+print(p) 
+
+ggsave(filename = 'lr3_near_far_barplot.png', plot = p, path = './results/experiment1/plots/', width = 10, height = 3, device='png', dpi=300)
+
+```
+
+### BF near-far
+
+```{r lr3-bf-near-far-all-conditions}
+
+null_interval <- c(0,Inf)
+
+
+data_summary_wide_near_far <- data_summary %>%
+        filter(hidden_pa_img_type != 'all_pa') %>% 
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                condition),
+                    names_from = hidden_pa_img_type,
+                    values_from = learning_rate_three_param_no_outlier_G) %>% 
+        mutate(near_minus_far = near-far)
+
+# For each condition do the BF test
+data_summary_wide_near_far %>%
+        group_by(condition) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$near_minus_far,
+                                        nullInterval = null_interval)[1],4),
+                  bf_01 = 1/bf_10)
+
+```
+
+### BF Near C vs L
+
+```{r lr3-bf-near-c-vs-l}
+
+null_interval <- c(-Inf,Inf)
+
+
+data_summary_near_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'near') %>%
+        droplevels() %>%
+        
+        pivot_wider(id_cols = c(ptp,
+                                counterbalancing,
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = learning_rate_three_param_no_outlier_G)
+
+
+# schema C vs L
+i_data <- data_summary_near_wide_condition$schema_c - data_summary_near_wide_condition$schema_l
+
+i_bf_near_pa_c_vs_l <- reportBF(ttestBF(
+        i_data,
+        nullInterval = null_interval
+)[1],4)
+
+```
+
+
