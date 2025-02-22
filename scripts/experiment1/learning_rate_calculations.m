@@ -73,9 +73,9 @@ for iPtp = 1:n_ptp
             
             % 1. The 2 parameter model
             [out_two_params,  fval_two_param,exitFlag_two_param] = ...
-                est_learning_rate(y',params_two,plotFMSEstimation,'two_parameters');
+                est_learning_rate_expt1(y',params_two,plotFMSEstimation,'two_parameters');
             [out_three_params,fval_three_param,exitFlag_three_param] = ...
-                est_learning_rate(y',params_three,plotFMSEstimation,'three_parameters');
+                est_learning_rate_expt1(y',params_three,plotFMSEstimation,'three_parameters');
 
             if ~exitFlag_three_param
 

@@ -84,7 +84,7 @@ for iPtp = 1:n_ptp
 
             %% Estimate fminsearch two param
             lastwarn('');
-            [out_two_params,fval_two_param,exitFlag] = est_learning_rate(y',params_two,plotFMSEstimation,'two_parameters');
+            [out_two_params,fval_two_param,exitFlag] = est_learning_rate_expt1(y',params_two,plotFMSEstimation,'two_parameters');
             [warnMsg, warnId] = lastwarn;
             
             if ~isempty(warnMsg)
@@ -102,7 +102,7 @@ for iPtp = 1:n_ptp
             y_2_8 = y(2:end);
 
             lastwarn('');
-            [out_two_params_2_8,fval_two_param_2_8,exitFlag_2_8] = est_learning_rate(y_2_8',params_two,plotFMSEstimation,'two_parameters');
+            [out_two_params_2_8,fval_two_param_2_8,exitFlag_2_8] = est_learning_rate_expt1(y_2_8',params_two,plotFMSEstimation,'two_parameters');
             [warnMsg, warnId] = lastwarn;
             
             if ~isempty(warnMsg)
@@ -117,7 +117,7 @@ for iPtp = 1:n_ptp
             %% Try fminsearch 3 param
             lastwarn('');
             [out_three_params,fval_three_param,exitFlag] = ...
-                est_learning_rate(y',params_three,plotFMSEstimation,'three_parameters');
+                est_learning_rate_expt1(y',params_three,plotFMSEstimation,'three_parameters');
 
             [warnMsg, warnId] = lastwarn;
 
@@ -135,7 +135,7 @@ for iPtp = 1:n_ptp
             
             lastwarn('');
             [out_three_params_2_8,fval_three_param_2_8,exitFlag_2_8] = ...
-                est_learning_rate(y_2_8',params_three,plotFMSEstimation,'three_parameters');
+                est_learning_rate_expt1(y_2_8',params_three,plotFMSEstimation,'three_parameters');
 
             [warnMsg, warnId] = lastwarn;
 
