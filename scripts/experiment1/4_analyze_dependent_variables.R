@@ -13,7 +13,7 @@
 rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
-source('./scripts/utils/load_transform_data.R')
+source('./scripts/utils/load_transform_data_exp1.R')
 
 # Flags
 saveData <- T
@@ -134,9 +134,9 @@ remove(data_summary_all_pas,data_summary_near_far_pas)
 if (saveData){
         
         write_csv(data_summary,
-                  './results/data_summary.csv')
+                  './results/experiment1/data_summary.csv')
         
         write_csv(mean_by_rep_long_all_types,
-                  './results/mean_by_rep_long_all_types.csv')
+                  './results/experiment1/mean_by_rep_long_all_types.csv')
         
 }
