@@ -17,10 +17,10 @@ warning('off','MATLAB:table:RowsAddedExistingVars')
 saveData = 0;
 
 %% Load and prepare the dataset
-opts = detectImportOptions('./results/mean_by_rep_long_all_types.csv');
+opts = detectImportOptions('./results/experiment1/mean_by_rep_long_all_types.csv');
 opts = setvartype(opts,{'border_dist_closest'},'char');
 
-df = readtable('./results/mean_by_rep_long_all_types.csv',opts);
+df = readtable('./results/experiment1/mean_by_rep_long_all_types.csv',opts);
 
 % Get only the needed accuracy types
 indices = strcmp(df.border_dist_closest,'all');
@@ -107,5 +107,5 @@ end %iPtp
 
 %% Save the table
 if saveData
-    writetable(tbl,'./results/learning_rate_fits_matlab.csv');
+    writetable(tbl,'./results/experiment1/learning_rate_fits_matlab.csv');
 end

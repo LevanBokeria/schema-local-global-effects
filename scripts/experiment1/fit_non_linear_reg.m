@@ -13,16 +13,16 @@ saveData = 0;
 qc_filter = 0;
 
 %% Load and prepare the dataset
-opts = detectImportOptions('./results/mean_by_rep_long_all_types.csv');
+opts = detectImportOptions('./results/experiment1/mean_by_rep_long_all_types.csv');
 opts = setvartype(opts,{'border_dist_closest'},'char');
 
-df = readtable('./results/mean_by_rep_long_all_types.csv',opts);
+df = readtable('./results/experiment1/mean_by_rep_long_all_types.csv',opts);
 
 % Load the qc pass data
-opts = detectImportOptions('./results/qc_check_sheets/qc_table.csv');
+opts = detectImportOptions('./results/experiment1/qc_check_sheets/qc_table.csv');
 opts = setvartype(opts,{'qc_fail_overall'},'logical');
 
-qc_pass = readtable('./results/qc_check_sheets/qc_table.csv',opts);
+qc_pass = readtable('./results/experiment1/qc_check_sheets/qc_table.csv',opts);
 qc_pass_ptp = qc_pass.ptp(~qc_pass.qc_fail_overall);
 
 % Get only the needed accuracy types
@@ -218,5 +218,5 @@ end %iPtp
 
 %% Save the table
 if saveData
-    writetable(tbl,'./results/learning_rate_fits_matlab.csv');
+    writetable(tbl,'./results/experiment1/learning_rate_fits_matlab.csv');
 end
