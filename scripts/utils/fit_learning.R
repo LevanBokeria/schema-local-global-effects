@@ -6,15 +6,18 @@
 
 # Arguments:
 # - p: A numeric vector of parameters for the model.
-#      For the two-parameter model: p[1] is the scaling factor, p[2] is the decay rate.
-#      For the three-parameter model: p[1] is the asymptote, p[2] is the decay rate, p[3] is the initial value.
+#      For the two-parameter model: p[1] is the intercept, p[2] is the decay rate or the learning rate.
+#      For the three-parameter model: p[2] is the decay rate or the learning rate, p[3] is the intercept,
+#      and p[1] - p[3] is the asymptote.
 # - t: A numeric vector representing the time points.
 # - y: A numeric vector of observed values.
 # - ret: A character string specifying the return type.
-#        Use 'fit' to return the fitted values (`y_hat`) or any other value to return the sum of squared errors (SSE).
+#        Use 'fit' to return the fitted values (`y_hat`) or any other value to return the sum of squared 
+#        errors (SSE).
 # - print_output: A logical value indicating whether to print intermediate output.
 # - which_model: A character string specifying the model type.
-#                Use 'two_param' for the two-parameter model or 'three_param' for the three-parameter model.
+#                Use 'two_param' for the two-parameter model or 'three_param' for the three-parameter 
+#                model.
 
 # Returns:
 # - If ret is 'fit', the function returns a numeric vector of fitted values (`y_hat`).
