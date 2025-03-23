@@ -1,6 +1,6 @@
 # Description ##############################
 
-# Helper function to load the long form data and tranform columns as needed
+# Helper function to load the long form data and transform columns as needed
 
 # Global setup #############################
 
