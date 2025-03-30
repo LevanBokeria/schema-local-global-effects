@@ -8,7 +8,7 @@ rm(list=ls())
 source('./scripts/utils/load_all_libraries.R')       
 source('./scripts/utils/load_transform_data_expt1.R')
 
-saveDataSummary <- F
+saveDataSummary <- T
 
 ## Import the data frames #####################
 ml_learning_rate <- import('./results/experiment1/learning_rate_fits_matlab.csv')

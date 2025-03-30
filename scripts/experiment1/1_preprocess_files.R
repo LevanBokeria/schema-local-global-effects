@@ -10,7 +10,7 @@ rm(list=ls())
 
 source('./scripts/utils/load_all_libraries.R')
 
-saveDataCSV <- F
+saveDataCSV <- T
 
 # Start reading the files ##################
 
