@@ -1,6 +1,6 @@
 # Description
 
-Scripts in this folder are for experiment 1, performing pre-processing of the data, analysis of dependent variables, statistical analyses, and plotting. 
+Scripts in this folder are for experiment 1, performing pre-processing of the data, analysis of dependent variables, statistical analyses, and plotting. Simply follow steps 1-6 to do all the pre-processing and statistical analyses, finishing with the markdown file to calculate and plot bayes factors and effect sizes. 
 
 ## 1_preprocess_files.R
 
