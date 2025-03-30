@@ -22,6 +22,10 @@ This MATLAB script will load pre-processed data and fit the 2-parameter and 3-pa
 
 This script will combine the CSV file produced by 4_fit_non_linear_reg.m script with the main pre-processed and analysed CSV files that include other behavioural stats, such that all the relevant statistics are in one CSV file for later analyses.
 
+## 6_transform_learning_rates_iqr.R
+
+Loads the data_summary.csv that already contains merged learning rate estimates, applies the 1.5*IQR rule to find outliers and substitute those with group-average values. The script also marks participant learning rates as to-be-excluded if they missed the 1st trial. See paper for more details.
+
 ## all_plots_and_group_analyses.Rmd
 
 This R Markdown file loads the pre-processed and analysed data at the participant-level and performs group level analyses and plots.
