@@ -1,4 +1,4 @@
-function [out_params,fval,exitFlag] = est_learning_rate(ptp_data,params,plotEstimation,which_model)
+function [out_params,fval,exitFlag] = est_learning_rate_expt2(ptp_data,params,plotEstimation,which_model)
     
     % fminsearch will find the best gamma
     if plotEstimation
@@ -7,11 +7,8 @@ function [out_params,fval,exitFlag] = est_learning_rate(ptp_data,params,plotEsti
     else
         options = optimset('MaxFunEvals',2e10);
         [out_params,fval,exitFlag] = fminsearch(@fit_learning,params,options);
-%         [out_params,fval,exitFlag] = fminsearch(@fit_learning,params);
     end
-    % A nested function, so that the @mink_distance could also take in
-    % extra acrguments (diag, side1, and side2) from the parent function
-    % @find_min_gamma
+
     function sse = fit_learning(x)
        
         trials = 1:length(ptp_data);

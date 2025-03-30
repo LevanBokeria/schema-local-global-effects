@@ -4,16 +4,16 @@
 # (`y_hat`) and optionally returns either the fitted values or the sum of squared
 # errors (SSE).
 
-# In this code repository, this function is not used to fit the model to the data. This function 
-# is only used by another R script called integrate_matlab_output.R to return the fitted values 
-# and integrate them with the main data files containing participant-level summary stats. 
+# In this code repository this function is only used by another R script called 
+# integrate_matlab_output.R to return the fitted values and integrate them with 
+# the main data files containing participant-level summary stats. 
 # This is done after model fits have already been calculated in MATLAB.
 
 # Arguments:
 # - p: A numeric vector of parameters for the model.
 #      For the two-parameter model: p[1] is the intercept, p[2] is the decay rate or the learning rate.
 #      For the three-parameter model: p[2] is the decay rate or the learning rate, p[3] is the intercept,
-#      and p[1] - p[3] is the asymptote.
+#      and p[1] - p[3] is the asymptote. See the paper for more details.
 # - t: A numeric vector representing the time points.
 # - y: A numeric vector of observed values.
 # - ret: A character string specifying the return type.
