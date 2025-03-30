@@ -257,7 +257,13 @@ for (iPtp in as.vector(all_ptp)){
 # Save everything #######################
 if (saveDataCSV){
         
-        print('Overwriting data...')
+        # Check if the folder exists, if not create it
+        if (!dir.exists('./results/experiment1/preprocessed_data')){
+                print('Creating the preprocessed_data folder...')
+                dir.create('./results/experiment1/preprocessed_data',recursive = T)
+        } else {
+                print('The preprocessed_data folder already exists. Overwriting data...')
+        }
         
         write_csv(block_results_all_ptp,'./results/experiment1/preprocessed_data/block_results_long_form.csv')
         write_csv(feedback_all_ptp,'./results/experiment1/preprocessed_data/feedback_all_ptp.csv')
@@ -269,5 +275,5 @@ if (saveDataCSV){
                   './results/experiment1/preprocessed_data/instructions_rt_all_ptp.csv',
                   row.names = FALSE)
         
-        print('Data overwritten.')
+        print('Data written.')
 }
