@@ -218,20 +218,18 @@ es_table_block_2_near_far_combined_condition_diff <- idf %>%
 
 ```
 
+## Near vs Far PAs:
 
+### Figure 6-C: Near vs Far for all conditions
 
-# Block 1 and 2 combined
-
-```{r both-block-performance}
+```{r near-far-block-2-all-conditions, fig.width=5, fig.height=2}
 
 # Barplot
 p <- data_summary %>%
-        filter(hidden_pa_img_type == 'near_far_combined') %>%
+        filter(hidden_pa_img_type %in% c('near','far')) %>%
         droplevels() %>%
-        # mutate(block_1_2_mouse_error_mean = rowMeans(select(cur_data(),block_1_mouse_error_mean,block_2_mouse_error_mean)),
-        #        block_1_2_mouse_error_mean_LOG = log(block_1_2_mouse_error_mean)) %>%
-        ggplot(aes(x=condition,
-                   y=block_1_2_mouse_error_mean,
+        ggplot(aes(x=hidden_pa_img_type,
+                   y=block_2_mouse_error_mean,
                    fill=condition)) +
         geom_bar(stat = 'summary', 
                  fun = 'mean',
@@ -239,121 +237,76 @@ p <- data_summary %>%
         geom_violin(width = 0.7) +
         geom_boxplot(width = 0.15,
                      fatten = 4,
-                     outlier.shape = '') + 
-        geom_jitter(width = 0.05,
-                    height = 0,
-                    alpha = 0.2) +
-        # stat_summary(fun = 'mean',
-        #              size = 2,
-        #              color = 'red') +
-        ylab('Mean Block 1-2 Error') +
+                     outlier.shape = '') +
+        geom_point(alpha = 0.2) +
+        geom_line(aes(group=ptp),
+                  alpha = 0.1) +        
+        ylab('Mean Block 2 Error') +
         xlab('') +
-        theme(legend.position = '') + 
-        scale_x_discrete(labels = c('Schema-2-2',
-                                    'Schema-4-2',
-                                    'Schema-4-4',
-                                    'Schema-6-0')) +
-        # coord_cartesian(ylim = c(0,150)) + 
-        ggtitle('Mean Block 1-2 Accuracy') + 
-        theme(plot.title = element_text(hjust = 0.5))
+        facet_wrap(~condition, nrow = 1) +        
+        theme(legend.position = '') +
+        ggtitle('Near vs Far Hidden-PAs') +
+        theme(plot.title = element_text(hjust = 0.5)) +
+        scale_x_discrete(labels = c('Far','Near'))
         
 print(p) 
 
-# ggsave(filename = 'block_1_2_barplot.png', plot = p, path = './results/experiment2/plots/', width = 5, height = 3, device='png', dpi=300)
+ggsave(filename = 'near_far_barplot.png', plot = p, path = './results/experiment2/plots/', width = 10, height = 3, device='png', dpi=300)
 
 ```
 
-## BF analysis
+### Figure 6-C: Bayes Factors near-far
 
-```{r bf-block-1-2-combined}
-null_interval <- c(-Inf,Inf)
+```{r bf-near-far-all-conditions}
 
-data_summary_wide_condition <- data_summary %>%
-        filter(hidden_pa_img_type == 'near_far_combined') %>%
+null_interval <- c(-Inf,0)
+
+
+data_summary_wide_near_far <- data_summary %>%
+        filter(hidden_pa_img_type %in% c('near','far')) %>% 
         droplevels() %>%
-        
         pivot_wider(id_cols = c(ptp,
                                 counterbalancing,
-                                hidden_pa_img_type),
-                    names_from = condition,
-                    values_from = block_1_2_mouse_error_mean_LOG)
+                                condition),
+                    names_from = hidden_pa_img_type,
+                    values_from = block_2_mouse_error_mean_LOG) %>% 
+        mutate(near_minus_far = near-far)
 
-
-# schema 2_2 vs 4_2
-i_data <- data_summary_wide_condition$schema_2_2 - data_summary_wide_condition$schema_4_2
-
-i_bf_2_2_vs_4_2 <- reportBF(ttestBF(
-        i_data,
-        nullInterval = null_interval
-)[1],4)
-
-# schema 4_2 vs 4_4
-i_data <- data_summary_wide_condition$schema_4_2 - data_summary_wide_condition$schema_4_4
-
-i_bf_4_2_vs_4_4 <- reportBF(ttestBF(
-        i_data,
-        nullInterval = null_interval
-)[1],4)
-
-i_bf_2_2_vs_4_2
-i_bf_4_2_vs_4_4
-
-1/i_bf_2_2_vs_4_2
-1/i_bf_4_2_vs_4_4
+# For each condition do the BF test
+bf_table_block_2_near_far_diff <-
+data_summary_wide_near_far %>%
+        group_by(condition) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$near_minus_far,
+                                        nullInterval = null_interval)[1],4),
+                  bf_01 = 1/bf_10)
 
 ```
 
-## Effect size estimates
+### Figure 6-C: Effect sizes near-far:
 
-```{r effect-size-combined-block-1-2}
+```{r effect-size-near-far-all-conditions}
+
 
 idf <- data_summary %>%
-        filter(hidden_pa_img_type == 'near_far_combined') %>%
-        droplevels() %>%
-        select(ptp,condition,block_1_2_mouse_error_mean_LOG)
+        filter(hidden_pa_img_type %in% c('near','far')) %>% 
+        droplevels() %>% 
+        select(ptp, condition, hidden_pa_img_type, block_2_mouse_error_mean_LOG)
 
-es_block_1_2_combined <- idf %>%
-        cohens_d(block_1_2_mouse_error_mean_LOG ~ condition, 
-                 paired = TRUE, 
-                 var.equal = FALSE,
-                 # comparisons = list(c("schema_c","schema_ic"),),
-                 hedges.correction = FALSE)
+es_table_block_2_near_far_diff <- idf %>%
+        group_by(condition) %>%
+        cohens_d(block_2_mouse_error_mean_LOG ~ hidden_pa_img_type, 
+        paired = TRUE, 
+        var.equal = FALSE,
+        hedges.correction = FALSE)
 
 ```
 
+# Suppl Figure 10: Learning Rate Analysis
 
-# Learning Rates
+
+## Near and Far combined
 
 ```{r}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'near_far_combined',
-               # condition != 'schema_6_0'
-               ) %>%
-        droplevels() %>%
-        ggplot(aes(x=condition,
-                   y=learning_rate_two_param_no_outlier,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.5) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=0.5) +
-        ggtitle('LR 2 RAW no outlier, comparing conditions') +
-        ylab('Learning Rate') + 
-        xlab('') +
-        theme(legend.position = '')
-
-# ggsave(filename = 'learning_rates_exp2.png', path = './results/experiment2/plots/', width = 5, height = 5, device='png', dpi=300)
 
 # Barplot
 p <- data_summary %>%
@@ -372,9 +325,6 @@ p <- data_summary %>%
         geom_jitter(width = 0.05,
                     height = 0,
                     alpha = 0.2) +
-        # stat_summary(fun = 'mean',
-        #              size = 2,
-        #              color = 'red') +
         geom_line(aes(group=ptp),
                   alpha = 0.1) +
         ylab('Learning Rate') +
@@ -384,115 +334,80 @@ p <- data_summary %>%
                                     'Schema-4-2',
                                     'Schema-4-4',
                                     'Schema-6-0')) +
-        # coord_cartesian(ylim = c(0,150)) + 
         ggtitle('Learning Rates') + 
         theme(plot.title = element_text(hjust = 0.5))
         
 print(p) 
 
-# ggsave(filename = 'learning_rates_all_cond.png', plot = p, path = './results/experiment2/plots/', width = 4, height = 3, device='png', dpi=300)
+ggsave(filename = 'learning_rates_all_cond.png', plot = p, path = './results/experiment2/plots/', width = 4, height = 3, device='png', dpi=300)
 ```
 
-## BF analyses
+### Bayes Factors: between pairs of conditions
 
-```{r}
+```{r lr2-bf-analysis-pairs}
 
 null_interval <- c(-Inf,Inf)
 
-data_summary_wide_condition <- data_summary %>%
+data_summary_lr2_wide_condition <- data_summary %>%
         filter(hidden_pa_img_type == 'near_far_combined') %>%
         droplevels() %>%
-        
         pivot_wider(id_cols = c(ptp,
                                 counterbalancing,
                                 hidden_pa_img_type),
                     names_from = condition,
                     values_from = learning_rate_two_param_no_outlier_G)
 
+data_summary_lr2_long_condition_differences <- data_summary_lr2_wide_condition %>%
+        mutate(schema_2_2_min_4_2 = schema_2_2 - schema_4_2,
+               schema_4_2_min_4_4 = schema_4_2 - schema_4_4,
+               schema_2_2_min_6_0 = schema_2_2 - schema_6_0,
+               schema_4_2_min_6_0 = schema_4_2 - schema_6_0,
+               schema_4_4_min_6_0 = schema_4_4 - schema_6_0) %>%
+        pivot_longer(cols = contains("_min_"),
+                     names_to = "comparison",
+                     values_to = "difference") %>%
+        select(-starts_with("schema_"))
+        
 
-# schema 2_2 vs 4_2
-i_data <- data_summary_wide_condition$schema_2_2 - data_summary_wide_condition$schema_4_2
+# For each do the BF test
+bf_table_lr2_near_far_combined_condition_diff <- data_summary_lr2_long_condition_differences %>%
+        group_by(comparison) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$difference,
+                                        nullInterval = null_interval)[1],4),
+                  bf_01 = 1/bf_10)
 
-i_bf_2_2_vs_4_2 <- reportBF(ttestBF(
-        i_data,
-        nullInterval = null_interval
-)[1],4)
-
-# schema 4_2 vs 4_4
-i_data <- data_summary_wide_condition$schema_4_2 - data_summary_wide_condition$schema_4_4
-
-i_bf_4_2_vs_4_4 <- reportBF(ttestBF(
-        i_data,
-        nullInterval = null_interval
-)[1],4)
-
-i_bf_2_2_vs_4_2
-i_bf_4_2_vs_4_4
-
-1/i_bf_2_2_vs_4_2
-1/i_bf_4_2_vs_4_4
 ```
 
-## Learning rates
 
-### Schema 4_4 vs 4_2
+### Effect sizes between pairs of conditions
 
-```{r effect-size-4-4-vs-4-2}
+
+```{r lr2-effect-sizes}
 
 idf <- data_summary %>%
         filter(hidden_pa_img_type == 'near_far_combined') %>%
         droplevels() %>%
         select(ptp,condition,learning_rate_two_param_no_outlier_G)
 
-es_block_2_conditions <- idf %>%
+es_table_lr2_near_far_combined_condition_diff <- idf %>%
         cohens_d(learning_rate_two_param_no_outlier_G ~ condition, 
                  paired = TRUE, 
                  var.equal = FALSE,
-                 # comparisons = list(c("schema_c","schema_ic"),),
                  hedges.correction = FALSE)
 
 ```
 
-# Near vs Far
 
-## Near vs Far for all conditions
+# Suppl Figure 11: Block 1 and 2 error combined
 
-```{r near-far-block-2-all-conditions, fig.width=10, fig.height=4}
-
-data_summary %>%
-        filter(hidden_pa_img_type %in% c('near','far'),
-               # condition %in% c('schema_c','schema_l'),
-               ) %>%
-        droplevels() %>%
-        ggplot(aes(x=hidden_pa_img_type,
-                   y=block_2_mouse_error_mean,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.7) +
-        geom_boxplot(width=0.2,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=0.5) +
-        # ggtitle('Block 2 error near and far, comparing conditions') +
-        ylab('Block 2 error') + 
-        xlab('') +
-        theme(legend.position = '') +
-        facet_wrap(~condition, nrow = 1)
+```{r both-block-performance}
 
 # Barplot
 p <- data_summary %>%
-        filter(hidden_pa_img_type %in% c('near','far')) %>%
+        filter(hidden_pa_img_type == 'near_far_combined') %>%
         droplevels() %>%
-        ggplot(aes(x=hidden_pa_img_type,
-                   y=block_2_mouse_error_mean,
+        ggplot(aes(x=condition,
+                   y=block_1_2_mouse_error_mean,
                    fill=condition)) +
         geom_bar(stat = 'summary', 
                  fun = 'mean',
@@ -500,691 +415,78 @@ p <- data_summary %>%
         geom_violin(width = 0.7) +
         geom_boxplot(width = 0.15,
                      fatten = 4,
-                     outlier.shape = '') +
-        # geom_jitter(width = 0.05,
-        #             height = 0,
-        #             alpha = 0.2) +
-        geom_point(alpha = 0.2) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +        
-        # stat_summary(fun = 'mean',
-        #              size = 2,
-        #              color = 'red') +
-        ylab('Mean Block 2 Error') +
+                     outlier.shape = '') + 
+        geom_jitter(width = 0.05,
+                    height = 0,
+                    alpha = 0.2) +
+        ylab('Mean Block 1-2 Error') +
         xlab('') +
-        facet_wrap(~condition, nrow = 1) +        
-        theme(legend.position = '') +
-        # scale_x_discrete(labels = c('Schema C',
-        #                             'Schema L',
-        #                             'Schema IC',
-        #                             'Random',
-        #                             'No Schema')) +
-        coord_cartesian(ylim = c(0,210)) +
-        ggtitle('Block 2 Error: Near vs Far Hidden-PAs') +
-        theme(plot.title = element_text(hjust = 0.5)) +
-        scale_x_discrete(labels = c('Far','Near'))
+        theme(legend.position = '') + 
+        scale_x_discrete(labels = c('Schema-2-2',
+                                    'Schema-4-2',
+                                    'Schema-4-4',
+                                    'Schema-6-0')) +
+        ggtitle('Mean Block 1-2 Accuracy') + 
+        theme(plot.title = element_text(hjust = 0.5))
         
 print(p) 
 
-# ggsave(filename = 'near_far_barplot.png', plot = p, path = './results/experiment2/plots/', width = 10, height = 3, device='png', dpi=300)
+ggsave(filename = 'block_1_2_barplot.png', plot = p, path = './results/experiment2/plots/', width = 5, height = 3, device='png', dpi=300)
 
 ```
 
-## BF near-far
+## Bayes Factors: between pairs of conditions
 
-```{r bf-near-far-all-conditions}
-
-null_interval <- c(-Inf,0)
+```{r bf-block-1-2-combined}
 
 
-data_summary_wide_near_far <- data_summary %>%
-        filter(hidden_pa_img_type %in% c('near','far')) %>% 
+null_interval <- c(-Inf,Inf)
+
+data_summary_blocks_1_2_wide_condition <- data_summary %>%
+        filter(hidden_pa_img_type == 'near_far_combined') %>%
         droplevels() %>%
-        
         pivot_wider(id_cols = c(ptp,
                                 counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_mouse_error_mean_LOG) %>% 
-        mutate(near_minus_far = near-far)
+                                hidden_pa_img_type),
+                    names_from = condition,
+                    values_from = block_1_2_mouse_error_mean_LOG)
 
-# For each condition do the BF test
-data_summary_wide_near_far %>%
-        group_by(condition) %>%
-        summarise(bf_10 = reportBF(ttestBF(cur_data()$near_minus_far,
+data_summary_blocks_1_2_long_condition_differences <- data_summary_blocks_1_2_wide_condition %>%
+        mutate(schema_2_2_min_4_2 = schema_2_2 - schema_4_2,
+               schema_4_2_min_4_4 = schema_4_2 - schema_4_4,
+               schema_2_2_min_6_0 = schema_2_2 - schema_6_0,
+               schema_4_2_min_6_0 = schema_4_2 - schema_6_0,
+               schema_4_4_min_6_0 = schema_4_4 - schema_6_0) %>%
+        pivot_longer(cols = contains("_min_"),
+                     names_to = "comparison",
+                     values_to = "difference") %>%
+        select(-starts_with("schema_"))
+        
+
+# For each do the BF test
+bf_table_blocks_1_2_near_far_combined_condition_diff <- data_summary_blocks_1_2_long_condition_differences %>%
+        group_by(comparison) %>%
+        summarise(bf_10 = reportBF(ttestBF(cur_data()$difference,
                                         nullInterval = null_interval)[1],4),
                   bf_01 = 1/bf_10)
 
 ```
 
+## Effect sizes between pairs of conditions
 
-
-## Effect size near-far
-
-```{r effect-size-near-far}
+```{r effect-size-combined-block-1-2}
 
 idf <- data_summary %>%
-        filter(hidden_pa_img_type %in% c('near','far')) %>% 
+        filter(hidden_pa_img_type == 'near_far_combined') %>%
         droplevels() %>%
-        select(ptp,condition,hidden_pa_img_type,block_2_mouse_error_mean_LOG)
+        select(ptp,condition,block_1_2_mouse_error_mean_LOG)
 
-es_near_far <- idf %>%
-        group_by(condition) %>%
-        cohens_d(block_2_mouse_error_mean_LOG ~ hidden_pa_img_type, 
+es_table_blocks_1_2_near_far_combined_condition_diff <- idf %>%
+        cohens_d(block_1_2_mouse_error_mean_LOG ~ condition, 
                  paired = TRUE, 
                  var.equal = FALSE,
-                 # comparisons = list(c("schema_c","schema_ic"),),
                  hedges.correction = FALSE)
 
 ```
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-## Learning Fits
-
-### Example participant learning curve
-
-```{r schema-c-vs-l-fits, fig.width=8, fig.height=5}
-
-fig_each_ptp <- mean_by_rep_long_all_types %>%
-        filter(hidden_pa_img_type == 'all_pa',
-               border_dist_closest == 'all',
-               ptp == 'sub_060',
-               condition == 'schema_c') %>%
-        droplevels() %>%
-        ggplot(aes(x=hidden_pa_img_row_number_across_blocks,
-                   y=mouse_error_mean)) +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-
-        geom_point(alpha=0.5) +
-        geom_line(alpha=0.5) +
-
-
-        # Add the y_hat two parameters
-        geom_line(aes(x=hidden_pa_img_row_number_across_blocks,
-                      y=y_hat_two_param),
-                  size=1,
-                  color='red',
-                  linetype = 'twodash') +
-        facet_grid(ptp~condition) +
-        ggtitle(paste('Mouse euclidean distance',sep='')) +
-        xlab('Image repetition') +
-        ylab('Mouse euclidean distance ') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        scale_y_continuous(breaks=seq(0,250,50)) +
-        theme(legend.position = '') +
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())
-
-print(fig_each_ptp)
-        
-```
-
-### Across participants learning (no fits)
-
-```{r learning-fits-across-participants, fig.height=3, fig.width=4}
-
-# Plot the fits
-fig_each_ptp <- mean_by_rep_long_all_types %>%
-        filter(hidden_pa_img_type == 'all_pa',
-               border_dist_closest == 'all',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%                
-        group_by(condition,
-                 hidden_pa_img_row_number_across_blocks) %>%
-        summarise(n = n(),
-                  mouse_error_mean_across_ptp = mean(mouse_error_mean,na.rm = T),
-                  mouse_error_sd_across_ptp   = sd(mouse_error_mean, na.rm = T),
-                  sem                         = mouse_error_sd_across_ptp/sqrt(n),
-                  upper_95_ci = mouse_error_mean_across_ptp + qt(0.975,df = n-1)*sem,
-                  lower_95_ci = mouse_error_mean_across_ptp - qt(0.975,df = n-1)*sem) %>% 
-        ungroup() %>% 
-        ggplot(aes(x=hidden_pa_img_row_number_across_blocks,
-                   y=mouse_error_mean_across_ptp,
-                   color=condition)) +
-        geom_point(size=2) +
-        geom_line(size=1) +
-        geom_ribbon(aes(ymin = lower_95_ci,
-                        ymax = upper_95_ci,
-                        group=condition,
-                        color=condition),
-                    alpha = 0.1,
-                    colour = NA) +
-
-        # facet_grid(~condition) +
-        ggtitle(paste('Mouse euclidean distance; Across participants',sep='')) +
-        xlab('Image repetition') +
-        ylab('Mouse euclidean distance ') +
-        scale_x_continuous(breaks=c(1,2,3,4,5,6,7,8)) +
-        scale_y_continuous(breaks=seq(0,200,25)) +  
-        coord_cartesian(ylim = c(0,200)) +
-        # theme(legend.position = 'top') +
-        geom_vline(xintercept = 4.5, linetype = 'dashed') +
-        theme(panel.grid.major = element_blank(), panel.grid.minor = element_blank())        
-
-
-
-print(fig_each_ptp)
-
-ggsave(filename = 'learning_rates.png', plot = fig_each_ptp, path = './results/experiment2/plots/', width = 5, height = 5, device='png', dpi=300)
-
-```
-
-### Learning Rate: schema-C vs schema-L
-
-```{r learning-fits-scatterplot}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        ggplot(aes(x=condition,
-                   y=learning_rate_two_param_no_outlier,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.4) +
-        geom_boxplot(width=0.2,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('LR 2 no outlier, comparing conditions') +
-        ylab('LR 2') + 
-        xlab('') +
-        theme(legend.position = '')
-
-```
-
-
-# Near vs Far
-
-## Block 2 error
-
-```{r near-far-block2-schema-c-l}
-data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        ggplot(aes(x=hidden_pa_img_type,
-                   y=block_2_mouse_error_mean,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        geom_point(alpha = 0.2) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2, comparing conditions, Far and Near') +
-        geom_hline(yintercept = 0, linetype = 'dashed') +
-        theme(legend.position = '') +
-        ylab('Far minus Near') +
-        xlab('') +
-        facet_wrap(~condition)
-
-
-```
-
-```{r only-near-schema-c-l-block2}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'near',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        ggplot(aes(x=condition,
-                   y=block_2_mouse_error_mean,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.4) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        geom_point(alpha = 0.2) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2, Only near items, C vs L') +
-        geom_hline(yintercept = 0, linetype = 'dashed') +
-        theme(legend.position = '') +
-        ylab('Far minus Near') +
-        xlab('')
-
-
-```
-
-```{r only-near-schema-c-l-block2, fig.width=4, fig.height=5}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'near',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                hidden_pa_img_type),
-                    names_from = condition,
-                    values_from = block_2_mouse_error_mean) %>%
-        mutate(schema_c_minus_l_near_lr2 = schema_c - schema_l) %>% 
-        ggplot(aes(x='difference',
-                   y=schema_c_minus_l_near_lr2)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.4) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_jitter(height = 0,
-                    width = 0.03,
-                    alpha = 0.3) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        stat_summary(fun.data = mean_cl_normal,
-                     geom = 'errorbar',
-                     color = 'red',
-                     width = 0.05) +
-        ggtitle('Block 2, near items, C - L') +
-        geom_hline(yintercept = 0, linetype = 'dashed') +
-        theme(legend.position = '') +
-        ylab('Far minus Near') +
-        xlab('')
-
-
-```
-
-## Learning fits
-
-```{r near-far-learning-fits-schema-c-l}
-
-data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        ggplot(aes(x=hidden_pa_img_type,
-                   y=learning_rate_two_param_no_outlier,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.5) +
-        geom_boxplot(width=0.2,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=0.5) +
-        # ggtitle('LR 2 no outlier, comparing conditions') +
-        ylab('Learning Rate') + 
-        xlab('') +
-        theme(legend.position = '') +
-        facet_wrap(~condition)
-
-ggsave(filename = 'learning_rates_all_cond.png', path = './results/experiment2/plots/', width = 4, height = 3, device='png', dpi=300)
-
-```
-
-```{r only-near-schema-c-l-learning-fits, fig.width=4, fig.height=5}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'near',
-               condition %in% c('schema_c','schema_l')) %>%
-        droplevels() %>%
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                hidden_pa_img_type),
-                    names_from = condition,
-                    values_from = learning_rate_two_param_no_outlier) %>%
-        mutate(schema_c_minus_l_near_lr2 = schema_c - schema_l) %>% 
-        ggplot(aes(x='difference',
-                   y=schema_c_minus_l_near_lr2)) +
-        geom_violin(alpha = 0.2,
-                    width = 0.5) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_jitter(height = 0,
-                    width = 0.04,
-                    alpha = 0.3) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=0.5) +
-        stat_summary(fun.data = mean_cl_normal,
-                     geom = 'errorbar',
-                     color = 'red',
-                     width = 0.05) +
-        ggtitle('LR 2 no outlier, near items, C - L') +
-        geom_hline(yintercept = 0, linetype = 'dashed') +
-        theme(legend.position = '') +
-        ylab('Learning Rate Diff.') +
-        xlab('')
-
-ggsave(filename = 'learning_rates_near_c_vs_l.png', path = './results/experiment2/plots/', width = 2, height = 4, device='png', dpi=300)
-
-```
-
-# Block 2 mean performance:
-
-## Compare conditions, across PAs:
-
-```{r block-2-conditions, fig.width=7}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa') %>%
-        droplevels() %>%
-        ggplot(aes(x=condition,
-                   y=block_2_mouse_error_mean,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2, comparing conditions') +
-        ylab('Block 2 error') + 
-        xlab('') +
-        theme(legend.position = '')
-
-```
-
-```{r block-2-LOG-conditions}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa') %>%
-        droplevels() %>%
-        
-        ggplot(aes(x=condition,
-                   y=block_2_mouse_error_mean_LOG,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_point(alpha = 0.2) +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2 LOG, comparing conditions')
-
-```
-
-
-
-### Bayes Factor
-
-```{r bf-analysis-schema-l-vs-schema-c}
-
-data_for_bf_l_vs_c <- data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                hidden_pa_img_type),
-                    names_from = condition,
-                    values_from = block_2_mouse_error_mean) %>% 
-        mutate(schema_l_minus_schema_c = schema_l - schema_c) %>% 
-        select(schema_l_minus_schema_c) %>% .[[1]]
-
-
-null_interval <- c(0,Inf)
-
-bf_l_vs_c <- reportBF(ttestBF(
-        data_for_bf_l_vs_c,
-        nullInterval = null_interval
-)[1],4)
-
-# Just get the effect size:
-es_l_vs_c <- mean(data_for_bf_l_vs_c) / sd(data_for_bf_l_vs_c)
-
-```
-
-
-```{r bf-analysis-schema-l-vs-schema-c-LOG}
-
-data_for_bf_l_vs_c_LOG <- data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                hidden_pa_img_type),
-                    names_from = condition,
-                    values_from = block_2_mouse_error_mean_LOG) %>% 
-        mutate(schema_l_minus_schema_c = schema_l - schema_c) %>% 
-        select(schema_l_minus_schema_c) %>% .[[1]]
-
-
-null_interval <- c(0,Inf)
-
-bf_l_vs_c_LOG <- reportBF(ttestBF(
-        data_for_bf_l_vs_c_LOG,
-        nullInterval = null_interval
-)[1],4)
-
-```
-
-## Near vs Far within each condition:
-
-```{r block-2-conditions-near-far, fig.width=7}
-
-data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_mouse_error_mean) %>% 
-        mutate(far_minus_near = far - near) %>%
-        
-        ggplot(aes(x=condition,
-                   y=far_minus_near,
-                   fill=condition)) +
-        geom_violin(alpha = 0.2) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        geom_point(alpha = 0.2) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2, comparing conditions, Far-Near') +
-        geom_hline(yintercept = 0, linetype = 'dashed') +
-        theme(legend.position = '') +
-        ylab('Far minus Near') +
-        xlab('')
-
-```
-
-```{r block-2-LOG-conditions-near-far}
-
-data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_mouse_error_mean_LOG) %>% 
-        mutate(far_minus_near = far - near) %>%
-        
-        ggplot(aes(x=condition,
-                   y=far_minus_near,
-                   fill=condition)) +
-        geom_violin(alpha=0.2) +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        # geom_jitter(height = 0,
-        #             width = 0.06,
-        #             alpha = 0.3) +
-        geom_line(aes(group=ptp),
-                  alpha = 0.1) +
-        geom_point(alpha = 0.2) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2 LOG, comparing conditions, Far-Near') +
-        geom_hline(yintercept = 0, linetype = 'dashed')
-
-```
-
-### Bayes Factor
-
-```{r bayes-analysis-schema-c-far-vs-near}
-
-data_for_bf_schema_c_far_vs_near <- data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa') %>%
-        filter(condition == 'schema_c') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_mouse_error_mean) %>% 
-        mutate(far_minus_near = far - near) %>%
-        select(far_minus_near) %>% .[[1]]
-
-
-null_interval <- c(0,Inf)
-
-bf_schema_c_far_vs_near <- reportBF(ttestBF(
-        data_for_bf_schema_c_far_vs_near,
-        nullInterval = null_interval
-)[1],4)
-
-```
-
-```{r bayes-analysis-schema-c-far-vs-near-LOG}
-
-data_for_bf_schema_c_far_vs_near_LOG <- data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa') %>%
-        filter(condition == 'schema_c') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_mouse_error_mean_LOG) %>% 
-        mutate(far_minus_near = far - near) %>%
-        select(far_minus_near) %>% .[[1]]
-
-
-null_interval <- c(0,Inf)
-
-bf_schema_c_far_vs_near_LOG <- reportBF(ttestBF(
-        data_for_bf_schema_c_far_vs_near_LOG,
-        nullInterval = null_interval
-)[1],4)
-
-```
-
-
-# Reaction times 
-
-## Comparing conditions 
-
-```{r rt-diff-conditions}
-
-data_summary %>%
-        filter(hidden_pa_img_type == 'all_pa') %>%
-        droplevels() %>%
-        
-        ggplot(aes(x=condition,
-                   y=block_2_rt_mean)) +
-        geom_violin() +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_jitter(height = 0,
-                    width = 0.06,
-                    alpha = 0.3) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2 RT, comparing conditions')
-
-```
-
-```{r rt-conditions-near-far}
-
-data_summary %>%
-        filter(hidden_pa_img_type != 'all_pa') %>%
-        droplevels() %>%
-        
-        pivot_wider(id_cols = c(ptp,
-                                counterbalancing,
-                                condition),
-                    names_from = hidden_pa_img_type,
-                    values_from = block_2_rt_mean) %>% 
-        mutate(far_minus_near = far - near) %>%
-        
-        ggplot(aes(x=condition,
-                   y=far_minus_near)) +
-        geom_violin() +
-        geom_boxplot(width=0.1,
-                     fatten=4,
-                     outlier.shape = '') +
-        geom_jitter(height = 0,
-                    width = 0.06,
-                    alpha = 0.3) +
-        stat_summary(fun=mean,
-                     color='red',
-                     size=1) +
-        ggtitle('Block 2 RT, comparing conditions, Far-Near') +
-        geom_hline(yintercept = 0, linetype = 'dashed')
-
-```
 
