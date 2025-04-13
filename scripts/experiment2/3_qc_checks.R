@@ -21,11 +21,11 @@ source('./scripts/utils/load_all_libraries.R')
 source('./scripts/utils/load_transform_data_expt2.R')
 source('./scripts/utils/qc_checks_permutations_expt2.R')
 
-saveDataCSV <- T
+saveDataCSV <- F
 
 load_qc_perm_data <- T
 
-save_qc_perm_data <- T
+save_qc_perm_data <- F
 
 # Start the QC analysis ##################
 
