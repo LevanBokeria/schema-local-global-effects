@@ -21,7 +21,7 @@ source('./scripts/utils/load_all_libraries.R')
 source('./scripts/utils/load_transform_data_expt2.R')
 source('./scripts/utils/qc_checks_permutations_expt2.R')
 
-saveDataCSV <- F
+saveDataCSV <- T
 
 load_qc_perm_data <- T
 
