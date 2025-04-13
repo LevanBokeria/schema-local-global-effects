@@ -11,8 +11,6 @@ source('./scripts/utils/load_transform_data_expt1.R')
 saveDataSummary <- T
 
 ## Import the data frames #####################
-ml_learning_rate <- import('./results/experiment1/learning_rate_fits_matlab.csv')
-
 qc_table <- import('./results/experiment1/qc_check_sheets/qc_table.csv')
         
 # Mark if missed first rep #######################
