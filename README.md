@@ -15,3 +15,6 @@ For each experiment, go to the corresponding folder in the `/scripts/` and run e
 Note: 
 - before running the sequence of scripts, the following files must be present in `/results/experiment<n>/qc_check_sheets/qc_check_debrief_and_errors.xlsx`. This file is created manually after manual quality checks for certain conditions for each participant.
 - All of the preprocessing and analysis scripts MUST be rerun all together. If you need to rerun the analysis, delete all the results files (except for files in qc_check_sheets) and rerun all of the scripts.
+- The following terminology has changed between writing of the scripts and writing of the manuscript:
+  - Hidden-PA -> New-PA. Scripts and data files contain terms such as "hidden_pa", and correspond to characteristics of "New-PAs" as described in the paper.
+  - Visible-PA -> Existing-PA. Scripts and data files contain terms such as "visible_pa", and correspond to characteristics of "Existing-PAs" as described in the paper.
