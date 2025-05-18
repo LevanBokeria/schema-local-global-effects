@@ -46,6 +46,12 @@ reportBF = function(x, digits){
         round(as.numeric(as.vector(x)), digits)
 }
 
+# Check that the plots table exists
+if (!dir.exists('./results/experiment1/plots')){
+        print('Creating the plots folder...')
+        dir.create('./results/experiment1/plots',recursive = T)
+}
+
 ```
 
 

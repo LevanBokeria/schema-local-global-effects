@@ -1,5 +1,5 @@
 
-permute_mouse_error <- function(long_data,load_existing_data,saveData){
+permute_mouse_error_expt1 <- function(long_data,load_existing_data,saveData){
         
         # Description #####################################################
         

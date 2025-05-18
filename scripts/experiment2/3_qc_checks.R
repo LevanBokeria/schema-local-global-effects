@@ -76,7 +76,7 @@ qc_check_missing_or_fast <- missing_data_summary %>%
 
 ## 4. Check against permuted null distributions -------------------------
 
-qc_check_permutation <- permute_mouse_error(long_data,
+qc_check_permutation <- permute_mouse_error_expt2(long_data,
                                         load_existing_data = load_qc_perm_data,
                                         saveData = save_qc_perm_data)
 
