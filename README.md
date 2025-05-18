@@ -4,8 +4,8 @@ A repository associated with the publication of the paper "Local vs Global Effec
 
 ## Description of folders:
 
-data: data files for each participant, extracted from JATOS output files after completing the experiment.
-results: contains quality check data, preprocessed data, analysed data, and plots for each experiment.
+- data: data files for each participant, extracted from JATOS output files after completing the experiment.
+- results: contains quality check data, preprocessed data, analysed data, and plots for each experiment.
 scripts: contains scripts to reproduce results for both experiments
 
 ## How to reproduce results:
